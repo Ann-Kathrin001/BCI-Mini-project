@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (IMPORTANT)
+SSVEP-BCI-Data/
+Extracted_Features/
+
+# Outputs
+*.csv
+*.npy
+*.npz
+*.h5
+*.pkl
+
+# Environment
+.env
+
