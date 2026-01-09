@@ -13,6 +13,9 @@ venv/
 # Data (IMPORTANT)
 SSVEP-BCI-Data/
 Extracted_Features/
+Extracted_Features_CSP/
+MI_BCI-Data/
+*.mat
 
 # Outputs
 *.csv
