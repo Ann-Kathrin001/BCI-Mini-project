@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.model_selection import StratifiedKFold, cross_val_predict, cross_val_score
+
+from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
@@ -18,103 +18,107 @@ from sklearn.metrics import accuracy_score, classification_report, confusion_mat
 BASE_PATH = (
     "/Users/ankadilfer/Desktop/Master DTU/Semester 2/"
     "Introduction to Brain Computer Interfaces/Project Code/"
-    "Extracted_Features_CSP"
+    "Extracted_Features_CSP_RIEMANN_BP_PLV"
 )
 
 N_SUBJECTS = 6
 
-# -------------------------------------------------
-# Load features and labels
-# -------------------------------------------------
-
 X_list = []
 y_list = []
+subject_ids = []
 
 for i in range(1, N_SUBJECTS + 1):
-    # Load features
-    data = np.load(os.path.join(BASE_PATH, f"Extracted_features_CSP_S{i}.npz"))
+    print(f"Loading Subject {i}")
+
+    data = np.load(os.path.join(BASE_PATH, f"Features_S{i}.npz"))
     X_i = data["features"]
+    y_i = np.load(os.path.join(BASE_PATH, f"Labels_S{i}.npy"))
 
-    # Load labels
-    y_i = np.load(os.path.join(BASE_PATH, f"Labels_CSP_S{i}.npy"))
-
-    # Safety checks
     assert X_i.shape[0] == y_i.shape[0], f"Mismatch in subject {i}"
 
     X_list.append(X_i)
     y_list.append(y_i)
+    subject_ids.extend([i] * len(y_i))
 
-# Concatenate across subjects (trials)
 X = np.concatenate(X_list, axis=0)
 y = np.concatenate(y_list, axis=0)
+subject_ids = np.array(subject_ids)
 
-# =========================
-# Cross-validation strategy
-# =========================
-cv = StratifiedKFold(
-    n_splits=10,
-    shuffle=True,
-    random_state=42
-)
+print("\nTotal trials:", X.shape[0])
+print("Feature dimension:", X.shape[1])
 
 
 # =========================
-# Pipeline (NO data leakage)
+# Leave-One-Subject-Out CV
 # =========================
-pipeline = Pipeline([
-    ('scaler', StandardScaler()),
-    ('svm', SVC(
-        kernel='rbf',
-        C=1.0,
-        gamma='scale',
-        class_weight='balanced'
-    ))
-])
+unique_subjects = np.unique(subject_ids)
+
+all_preds = []
+all_true = []
+loso_scores = []
+
+for test_subj in unique_subjects:
+    print(f"\n==============================")
+    print(f"Leaving out Subject {test_subj}")
+
+    train_mask = subject_ids != test_subj
+    test_mask  = subject_ids == test_subj
+
+    X_train, X_test = X[train_mask], X[test_mask]
+    y_train, y_test = y[train_mask], y[test_mask]
+
+    # New pipeline for each fold
+    pipeline = Pipeline([
+        ('scaler', StandardScaler()),
+        ('svm', SVC(
+            kernel='rbf',
+            C=1.0,
+            gamma='scale',
+            class_weight='balanced'
+        ))
+    ])
+
+    # Train
+    pipeline.fit(X_train, y_train)
+
+    # Test
+    y_pred = pipeline.predict(X_test)
+    acc = accuracy_score(y_test, y_pred)
+
+    print(f"Subject {test_subj} Accuracy: {acc:.4f}")
+
+    loso_scores.append(acc)
+    all_preds.append(y_pred)
+    all_true.append(y_test)
 
 
 # =========================
-# Cross-validated accuracy
+# Aggregate results
 # =========================
-scores = cross_val_score(
-    pipeline,
-    X,
-    y,
-    cv=cv,
-    n_jobs=-1
-)
+all_preds = np.concatenate(all_preds)
+all_true  = np.concatenate(all_true)
+loso_scores = np.array(loso_scores)
 
-for i, acc in enumerate(scores, start=1):
-    print(f"Accuracy for Fold {i}: {acc:.2f}")
+print("\n==============================")
+print("LOSO Subject Accuracies:")
+for s, a in zip(unique_subjects, loso_scores):
+    print(f"Subject {s}: {a:.4f}")
 
-print(f"\nMean Cross-Validation Accuracy: {scores.mean():.4f}")
-
-
-# =========================
-# Cross-validated predictions
-# =========================
-y_pred = cross_val_predict(
-    pipeline,
-    X,
-    y,
-    cv=cv,
-    n_jobs=-1
-)
-
-accuracy = accuracy_score(y, y_pred)
-print(f"\nCross-Validated Accuracy: {accuracy:.4f}")
+print("\nMean LOSO Accuracy:", loso_scores.mean())
+print("Std  LOSO Accuracy:", loso_scores.std())
 
 
 # =========================
 # Classification report
 # =========================
-print("\nClassification Report:")
-print(classification_report(y, y_pred))
+print("\nClassification Report (LOSO):")
+print(classification_report(all_true, all_preds))
 
 
 # =========================
-# Confusion matrix
+# Confusion Matrix
 # =========================
-conf_matrix = confusion_matrix(y, y_pred)
+conf_matrix = confusion_matrix(all_true, all_preds)
 class_labels = np.unique(y)
 
 plt.figure(figsize=(8, 6))
@@ -128,6 +132,30 @@ sns.heatmap(
 )
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.title('Confusion Matrix Heatmap')
+plt.title('LOSO Confusion Matrix')
 plt.tight_layout()
 plt.show()
+
+#LOSO Subject Accuracies (SVM+CSP):
+#Subject 1: 0.5324
+#Subject 2: 0.4982
+#Subject 3: 0.5178
+#Subject 4: 0.4622
+#Subject 5: 0.5069
+#Subject 6: 0.5000
+
+#Mean LOSO Accuracy: 0.5029281930232727
+#Std  LOSO Accuracy: 0.02156687698885438
+
+
+
+#LOSO Subject Accuracies (SVM+DWT):
+#Subject 1: 0.5020
+#Subject 2: 0.5204
+#Subject 3: 0.5049
+#Subject 4: 0.5143
+#Subject 5: 0.5161
+#Subject 6: 0.5492
+
+#Mean LOSO Accuracy: 0.5178166704311455
+#Std  LOSO Accuracy: 0.015401435954791896

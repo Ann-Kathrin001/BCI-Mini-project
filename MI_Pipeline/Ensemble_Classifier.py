@@ -5,10 +5,11 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import os
-from sklearn.feature_selection import SelectKBest, f_classif
+
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 
@@ -56,7 +57,6 @@ unique_subjects = np.unique(subject_ids)
 all_preds = []
 all_true = []
 loso_scores = []
-K_BEST = 4
 
 for test_subj in unique_subjects:
     print(f"\n==============================")
@@ -68,24 +68,53 @@ for test_subj in unique_subjects:
     X_train, X_test = X[train_mask], X[test_mask]
     y_train, y_test = y[train_mask], y[test_mask]
 
-    # New model for each subject
-    pipeline = Pipeline([
-        ('scaler', StandardScaler()),
-        #('kbest', SelectKBest(score_func=f_classif, k=K_BEST)),
-        ('rf', RandomForestClassifier(
-            n_estimators=300,
-            max_depth=None,
-            min_samples_leaf=2,
+    # ------------------------------------------------------
+    # SVM branch (good for CSP + Riemann)
+    # ------------------------------------------------------
+    svm = Pipeline([
+        ("scaler", StandardScaler()),
+        ("svm", SVC(
+            kernel="rbf",
+            C=10,
+            gamma="scale",
             class_weight="balanced",
+            probability=True,
             random_state=42
         ))
     ])
 
-    # Train
-    pipeline.fit(X_train, y_train)
+    # ------------------------------------------------------
+    # RF branch (good for Bandpower + PLV)
+    # ------------------------------------------------------
+    rf = RandomForestClassifier(
+        n_estimators=400,
+        max_depth=None,
+        min_samples_leaf=2,
+        class_weight="balanced",
+        random_state=42
+    )
 
+    # ------------------------------------------------------
+    # Soft-voting ensemble
+    # ------------------------------------------------------
+    ensemble = VotingClassifier(
+        estimators=[
+            ("svm", svm),
+            ("rf", rf)
+        ],
+        voting="soft",
+        weights=[0.6, 2]
+    )
+
+    # ------------------------------------------------------
+    # Train
+    # ------------------------------------------------------
+    ensemble.fit(X_train, y_train)
+
+    # ------------------------------------------------------
     # Test
-    y_pred = pipeline.predict(X_test)
+    # ------------------------------------------------------
+    y_pred = ensemble.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
 
     print(f"Subject {test_subj} Accuracy: {acc:.4f}")
@@ -114,7 +143,7 @@ print("Std  LOSO Accuracy:", loso_scores.std())
 # =========================
 # Classification report
 # =========================
-print("\nClassification Report (LOSO):")
+print("\nClassification Report (LOSO Ensemble):")
 print(classification_report(all_true, all_preds))
 
 
@@ -135,53 +164,30 @@ sns.heatmap(
 )
 plt.xlabel('Predicted Label')
 plt.ylabel('True Label')
-plt.title('LOSO Confusion Matrix')
+plt.title('LOSO Confusion Matrix (SVM + RF Ensemble)')
 plt.tight_layout()
 plt.show()
 
 
 
-#LOSO Subject Accuracies (RF+DWT):
-#Subject 1: 0.5364
-#Subject 2: 0.5187
-#Subject 3: 0.5672
-#Subject 4: 0.4995
-#Subject 5: 0.5161
-#Subject 6: 0.5512
+#LOSO Subject Accuracies:
+#Subject 1: 0.6093
+#Subject 2: 0.6412
+#Subject 3: 0.6877
+#Subject 4: 0.7128
+#Subject 5: 0.5899
+#Subject 6: 0.5519
 
-#Mean LOSO Accuracy: 0.5315146292844222
-#Std  LOSO Accuracy: 0.022769647697740498
+#Mean LOSO Accuracy: 0.6321252071728448
+#Std  LOSO Accuracy: 0.05539735930388436
 
-
-#LOSO Subject Accuracies (CSP+RF):
-#Subject 1: 0.5547
-#Subject 2: 0.4920
-#Subject 3: 0.5202
-#Subject 4: 0.5393
-#Subject 5: 0.5138
-#Subject 6: 0.5239
-
-#Mean LOSO Accuracy: 0.5239845358935645
-#Std  LOSO Accuracy: 0.0196416224010146
-
-
-#LOSO Subject Accuracies (CSP+Riemann+RF):
-#Subject 1: 0.6296
-#Subject 2: 0.6261
-#Subject 3: 0.6432
-#Subject 4: 0.7408
-#Subject 5: 0.5576
-#Subject 6: 0.5758
-
-#Mean LOSO Accuracy: 0.6288513914995368
-#Std  LOSO Accuracy: 0.058649735061837995
-
-#Classification Report (LOSO):
+#Classification Report (LOSO Ensemble):
 #              precision    recall  f1-score   support
 
-#           0       0.64      0.68      0.66      3349
-#           1       0.66      0.61      0.63      3365
+#           0       0.64      0.67      0.65      3349
+#           1       0.66      0.62      0.64      3365
 
 #    accuracy                           0.65      6714
 #   macro avg       0.65      0.65      0.65      6714
 #weighted avg       0.65      0.65      0.65      6714
+
