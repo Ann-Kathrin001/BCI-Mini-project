@@ -228,19 +228,8 @@ print("\nMean LOSO accuracy:", loso_accuracies.mean()*100)
 print("Std LOSO accuracy:", loso_accuracies.std()*100)
 
 
-#LOSO results(without normalization):
-#Subject 0: 56.88%
-#Subject 1: 57.19%
-#Subject 2: 58.25%
-#Subject 3: 71.33%
-#Subject 4: 55.99%
-#Subject 5: 56.69%
 
-#Mean LOSO accuracy: 59.389988581339516
-#Std LOSO accuracy: 5.380662834857831
-
-
-#LOSO results (with normalization):
+#LOSO results :
 #Subject 0: 60.93%
 #Subject 1: 65.01%
 #Subject 2: 56.96%
@@ -251,10 +240,3 @@ print("Std LOSO accuracy:", loso_accuracies.std()*100)
 #Mean LOSO accuracy: 61.39292120933533
 #Std LOSO accuracy: 6.6425485218018565
 
-#tO DO List /
-# add normalization of features before CNN training
-
-
-#possible changes to try:
-#- different filtering parameters
-#- use of ShallowFBCSPNet instead of EEGNetv4
