@@ -6,10 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestClassifier, VotingClassifier
-from sklearn.svm import SVC
+from xgboost import XGBClassifier
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
 
 
@@ -69,52 +66,30 @@ for test_subj in unique_subjects:
     y_train, y_test = y[train_mask], y[test_mask]
 
     # ------------------------------------------------------
-    # SVM branch (good for CSP + Riemann)
+    # XGBoost classifier
     # ------------------------------------------------------
-    svm = Pipeline([
-        ("scaler", StandardScaler()),
-        ("svm", SVC(
-            kernel="rbf",
-            C=10,
-            gamma="scale",
-            class_weight="balanced",
-            probability=True,
-            random_state=42
-        ))
-    ])
-
-    # ------------------------------------------------------
-    # RF branch (good for Bandpower + PLV)
-    # ------------------------------------------------------
-    rf = RandomForestClassifier(
+    xgb = XGBClassifier(
         n_estimators=400,
-        max_depth=None,
-        min_samples_leaf=2,
-        class_weight="balanced",
-        random_state=42
-    )
-
-    # ------------------------------------------------------
-    # Soft-voting ensemble
-    # ------------------------------------------------------
-    ensemble = VotingClassifier(
-        estimators=[
-            ("svm", svm),
-            ("rf", rf)
-        ],
-        voting="soft",
-        weights=[0.5, 2.5]
+        max_depth=6,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        objective="binary:logistic",
+        eval_metric="logloss",
+        scale_pos_weight=np.sum(y_train == 0) / np.sum(y_train == 1),
+        random_state=42,
+        n_jobs=-1
     )
 
     # ------------------------------------------------------
     # Train
     # ------------------------------------------------------
-    ensemble.fit(X_train, y_train)
+    xgb.fit(X_train, y_train)
 
     # ------------------------------------------------------
     # Test
     # ------------------------------------------------------
-    y_pred = ensemble.predict(X_test)
+    y_pred = xgb.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
 
     print(f"Subject {test_subj} Accuracy: {acc:.4f}")
@@ -132,7 +107,7 @@ all_true  = np.concatenate(all_true)
 loso_scores = np.array(loso_scores)
 
 print("\n==============================")
-print("LOSO Subject Accuracies:")
+print("LOSO Subject Accuracies (XGBoost):")
 for s, a in zip(unique_subjects, loso_scores):
     print(f"Subject {s}: {a:.4f}")
 
@@ -143,7 +118,7 @@ print("Std  LOSO Accuracy:", loso_scores.std())
 # =========================
 # Classification report
 # =========================
-print("\nClassification Report (LOSO Ensemble):")
+print("\nClassification Report (LOSO XGBoost):")
 print(classification_report(all_true, all_preds))
 
 
@@ -157,40 +132,35 @@ plt.figure(figsize=(8, 6))
 sns.heatmap(
     conf_matrix,
     annot=True,
-    fmt='d',
-    cmap='Blues',
+    fmt="d",
+    cmap="Blues",
     xticklabels=class_labels,
     yticklabels=class_labels
 )
-plt.xlabel('Predicted Label')
-plt.ylabel('True Label')
-plt.title('LOSO Confusion Matrix (SVM + RF Ensemble)')
+plt.xlabel("Predicted Label")
+plt.ylabel("True Label")
+plt.title("LOSO Confusion Matrix (XGBoost)")
 plt.tight_layout()
 plt.show()
 
 
+#LOSO Subject Accuracies (XGBoost):
+#Subject 1: 0.6093
+#Subject 2: 0.6181
+#Subject 3: 0.6278
+#Subject 4: 0.7510
+#Subject 5: 0.6060
+#Subject 6: 0.5519
 
+#Mean LOSO Accuracy: 0.6273640741850203
+#Std  LOSO Accuracy: 0.06034932449203988
 
-
-
-#LOSO Subject Accuracies RF=2 SVM=0.6:  (WINNER)
-#Subject 1: 0.6235
-#Subject 2: 0.6412
-#Subject 3: 0.6998
-#Subject 4: 0.7235
-#Subject 5: 0.5968
-#Subject 6: 0.5560
-
-#Mean LOSO Accuracy: 0.6401303824365553
-#Std  LOSO Accuracy: 0.0573651900309437
-
-#Classification Report (LOSO Ensemble):
+#Classification Report (LOSO XGBoost):
 #              precision    recall  f1-score   support
 
-#           0       0.65      0.68      0.66      3349
-#           1       0.66      0.63      0.65      3365
+#           0       0.63      0.70      0.66      3349
+#           1       0.66      0.59      0.62      3365
 
- #   accuracy                           0.65      6714
-#   macro avg       0.65      0.65      0.65      6714
-#weighted avg       0.65      0.65      0.65      6714
-
+#    accuracy                           0.64      6714
+#   macro avg       0.64      0.64      0.64      6714
+#weighted avg       0.64      0.64      0.64      6714

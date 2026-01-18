@@ -136,26 +136,24 @@ plt.title('LOSO Confusion Matrix')
 plt.tight_layout()
 plt.show()
 
-#LOSO Subject Accuracies (SVM+CSP):
-#Subject 1: 0.5324
-#Subject 2: 0.4982
-#Subject 3: 0.5178
-#Subject 4: 0.4622
-#Subject 5: 0.5069
-#Subject 6: 0.5000
-
-#Mean LOSO Accuracy: 0.5029281930232727
-#Std  LOSO Accuracy: 0.02156687698885438
-
-
-
-#LOSO Subject Accuracies (SVM+DWT):
-#Subject 1: 0.5020
-#Subject 2: 0.5204
-#Subject 3: 0.5049
-#Subject 4: 0.5143
-#Subject 5: 0.5161
+#LOSO Subject Accuracies:
+#Subject 1: 0.5850
+#Subject 2: 0.6385
+#Subject 3: 0.6845
+#Subject 4: 0.7286
+#Subject 5: 0.6175
 #Subject 6: 0.5492
 
-#Mean LOSO Accuracy: 0.5178166704311455
-#Std  LOSO Accuracy: 0.015401435954791896
+#Mean LOSO Accuracy: 0.6338821760639922
+#Std  LOSO Accuracy: 0.059688633481772634
+
+#Classification Report (LOSO):
+#              precision    recall  f1-score   support
+
+#           0       0.64      0.69      0.66      3349
+#           1       0.66      0.61      0.64      3365
+
+#    accuracy                           0.65      6714
+#   macro avg       0.65      0.65      0.65      6714
+#weighted avg       0.65      0.65      0.65      6714
+
