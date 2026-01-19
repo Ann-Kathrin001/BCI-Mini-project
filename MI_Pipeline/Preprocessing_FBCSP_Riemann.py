@@ -50,9 +50,10 @@ def compute_plv(X):
 
 
 # ============================================================
-# Files
+# Files - users: ankadilfer / joserocha
 # ============================================================
-base_path = "/Users/ankadilfer/Desktop/Master DTU/Semester 2/Introduction to Brain Computer Interfaces/Project Code/MI_Pipeline/MI_BCI_Data"
+#base_path = "/Users/ankadilfer/Desktop/Master DTU/Semester 2/Introduction to Brain Computer Interfaces/Project Code/MI_Pipeline/MI_BCI_Data"
+base_path = '/Users/joserocha/Documents/UNIVERSIDADE/MSc BME - DTU/1st YEAR/PRINCIPLES OF BRAIN COMPUTER INTERFACE/mini-Project/MI_BCI_Data'
 
 files = [
     base_path + "/PAT013.mat",
@@ -63,7 +64,9 @@ files = [
     base_path + "/PATID26.mat"
 ]
 
-save_dir = "/Users/ankadilfer/Desktop/Master DTU/Semester 2/Introduction to Brain Computer Interfaces/Project Code/Extracted_Features_CSP_RIEMANN_BP_PLV"
+#save_dir = "/Users/joserocha/Desktop/Master DTU/Semester 2/Introduction to Brain Computer Interfaces/Project Code/Extracted_Features_CSP_RIEMANN_BP_PLV"
+save_dir = '/Users/joserocha/Documents/UNIVERSIDADE/MSc BME - DTU/1st YEAR/PRINCIPLES OF BRAIN COMPUTER INTERFACE/Extracted_Features_CSP_RIEMANN_BP_PLV'
+
 os.makedirs(save_dir, exist_ok=True)
 
 # ============================================================
